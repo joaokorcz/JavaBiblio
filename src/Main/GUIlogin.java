@@ -21,6 +21,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 
@@ -35,7 +36,7 @@ public class GUIlogin extends JFrame {
     private JLabel lbLog = new JLabel("Email");
     private JTextField tfLog = new JTextField(20);
     private JLabel lbSen = new JLabel("Senha");
-    private JTextField tfSen = new JTextField(20);
+    private JPasswordField tfSen = new JPasswordField(20);
 
     private JButton btLogin = new JButton("Entrar");
     private JButton btPerf = new JButton("Não tenho uma conta");
@@ -81,8 +82,8 @@ public class GUIlogin extends JFrame {
         btLogin.setToolTipText("Acessa");
         pnCentro.add(pnCentro3);
 
-        //tfLog.setText("adm");
-        //tfSen.setText("adm");
+        //tfLog.setText("joaokorcz@hotmail.com");
+        //tfSen.setText("loco");
 
         Action action = new AbstractAction() {
             @Override
@@ -138,7 +139,7 @@ public class GUIlogin extends JFrame {
             }
         });
 
-        setLocationRelativeTo(null);
+       setLocationRelativeTo(null);
         setVisible(true);
     }
 

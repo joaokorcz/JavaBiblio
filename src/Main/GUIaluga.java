@@ -6,6 +6,10 @@ import Entidades.Livro;
 import Entidades.Livroalugado;
 import Entidades.LivroalugadoPK;
 import Entidades.Usuario;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
 import javax.swing.JFrame;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -29,7 +33,10 @@ import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.DefaultCaret;
 import ferramentas.UsarGridBagLayout;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Date;
+import java.util.Observable;
 
 class GUIaluga extends JFrame {
 
@@ -73,7 +80,7 @@ class GUIaluga extends JFrame {
     private String[][] dados = new String[0][6];
 
     private DefaultTableModel model = new DefaultTableModel(dados, colunas);
-    private JTable tabela = new JTable(model);    
+    private JTable tabela = new JTable(model);
 
     private JScrollPane scrollList = new JScrollPane();
 
@@ -113,6 +120,57 @@ class GUIaluga extends JFrame {
         btDev.setVisible(false);
     }
 
+    private void gerarComprovante(Usuario usuario, Livro livro, Livroalugado la) {
+
+        Document document = new Document();
+
+        try {
+
+            PdfWriter.getInstance(document, new FileOutputStream("Comprovante " + usuario.getNome() + " " + livro.getTitulo() + ".pdf"));
+
+            document.open();
+
+            document.add(new Paragraph("Usuario: " + usuario.getNome() + "."));
+            document.add(new Paragraph("Livro: " + livro.getTitulo() + "."));
+            document.add(new Paragraph("Data do Empréstimo: " + mdt.getDateParaStringBr(livroalugado.getDataEmp()) + "."));
+            document.add(new Paragraph("Data da Devolução: " + mdt.getDateParaStringBr(livroalugado.getDataDev()) + "."));
+            document.add(new Paragraph("\nATENÇÃO A DEVOLUÇÃO, LIVROS ENTREGUES APÓS A DATA EXPIRADA SERÃO TARIFADOS EM 500 REAIS POR DIA DE ATRASO."));
+
+        } catch (DocumentException de) {
+            System.err.println(de.getMessage());
+        } catch (IOException ioe) {
+            System.err.println(ioe.getMessage());
+        }
+
+        document.close();
+
+    }
+
+    private void enviarEmailComprovante(Usuario usuario, Livro livro, Livroalugado la) {
+
+        String assunto = "Comprovante de aluguel de Livro";
+        String mensagem = "Segue em anexo seu comprovante de aluguel de livro."
+                + "\nUsuario: " + usuario.getNome() + "."
+                + "\nLivro: " + la.getLivro().getTitulo() + "."
+                + "\nData do emprestimo: " + mdt.getDateParaStringBr(la.getDataEmp()) + "."
+                + "\nData da devoulução: " + mdt.getDateParaStringBr(la.getDataDev()) + "."
+                + "\nAtencao aos dados e as respectivas >DATAS IMPORTANTES!<";
+        String destinatario = usuario.getEmail();
+
+        String eMail = "uzumcorp@gmail.com";
+        String eSenha = "uzumjamal";
+
+        SendMail sm = new SendMail("smtp.gmail.com", "465", eMail, eSenha);
+
+        new Thread() {
+            @Override
+            public void run() {
+                sm.sendMail(destinatario, assunto, mensagem, usuario, livro);
+            }
+        }.start();
+        
+    }
+
     private Livro livro = new Livro();
     private DAOLivro daoLivro = new DAOLivro();
 
@@ -142,7 +200,7 @@ class GUIaluga extends JFrame {
 
         UsarGridBagLayout usarGridBagLayoutSul = new UsarGridBagLayout(pnSulMsg);
         usarGridBagLayoutSul.add(new JLabel("log"), scrollMensagem);
-        
+
         pnSul.add(pnSulMsg, "pnMsg");
         pnSul.add(pnSulListagem, "pnLst");
 
@@ -182,14 +240,14 @@ class GUIaluga extends JFrame {
         pnCentro.add(lbA);
         pnCentro.add(tfA);
         tfA.setEnabled(false);
-        
+
         List<Livro> livros = daoLivro.listInOrderId();
         String idGs = "";
 
         for (Livro l : livros) {
             idGs += l.getAutorIdAutor().getIdAutor() + ";";
         }
-        
+
         if (usuario.getEmail().equals("adm")) {
             btListarAlugueisAdm.setVisible(true);
         } else {
@@ -265,6 +323,10 @@ class GUIaluga extends JFrame {
                     JOptionPane.showMessageDialog(cp, "Parabéns " + usuario.getNome() + ", você alugou o livro " + livro.getTitulo() + ".\n"
                             + "A data marcada para a devolução é: " + mdt.getDateParaStringBr(livroalugado.getDataDev()) + "!");
 
+                    gerarComprovante(usuario, livro, livroalugado);
+
+                    enviarEmailComprovante(usuario, livro, livroalugado);
+
                     livro = new Livro();
                     livroalugado = new Livroalugado();
                     livroalugadoPK = new LivroalugadoPK();
@@ -302,9 +364,9 @@ class GUIaluga extends JFrame {
                     btLimpar.doClick();
 
                 } catch (Exception erro) {
-                
-                    JOptionPane.showMessageDialog(cp, usuario.getNome() + ", você não pode devolver um livro que não tem alugado!"+erro);
-                    
+
+                    JOptionPane.showMessageDialog(cp, usuario.getNome() + ", você não pode devolver um livro que não tem alugado!" + erro);
+
                 }
 
             }
@@ -327,22 +389,22 @@ class GUIaluga extends JFrame {
                 }
             }
         });
-        
+
         btListarAlugueis.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                
+
                 GUIlistaEmprestimo guIlistaEmprestimo = new GUIlistaEmprestimo(usuario);
-                
+
             }
         });
-        
+
         btListarAlugueisAdm.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                
+
                 GUIlistaEmprestimo guIlistaEmprestimo = new GUIlistaEmprestimo(usuario);
-                
+
             }
         });
 
